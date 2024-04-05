@@ -1,0 +1,7 @@
+**__pycache__
+version
+src/env
+src/storage
+src/telegram_compiler_backend.log
+telegram_compiler_secrets*
+**test*

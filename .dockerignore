@@ -1,0 +1,4 @@
+src/__pycache__
+src/env
+src/storage
+src/telegram_compiler_backend.log

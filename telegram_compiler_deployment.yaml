@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegram-compiler-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: telegram-compiler
+  template:
+    metadata:
+      labels:
+        app: telegram-compiler
+    spec:
+      containers:
+        - name: telegram-compiler-container
+          image: 192.168.0.2:5000/telegram-compiler_image:1.0.1
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: telegram-compiler-secret
+                  key: OPENAI_API_KEY
+          volumeMounts:
+            - mountPath: /telegram_compiler/storage
+              name: telegram-compiler-pv-storage
+      volumes:
+        - name: telegram-compiler-pv-storage
+          persistentVolumeClaim:
+            claimName: telegram-compiler-pvc
