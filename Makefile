@@ -13,5 +13,9 @@ update:
 run:
 	docker run -d -p 60005:8000 --name telegram_compiler_container telegram_compiler_image:$(shell cat version)
 
+commit:
+	git add .
+	git commit -m "deployment $(shell cat version)"
+
 prod:
-	$(MAKE) build tag push update
+	$(MAKE) build tag push update commit

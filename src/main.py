@@ -1,116 +1,198 @@
-from chatgpt import get_language_of_code_from_chatgpt
-import subprocess
-import os
-import sys
-from logger import logger, log
 import logging
-
-if __name__ == '__main__':
-    logger.setLevel(logging.DEBUG)
-
-CODE_STORAGE_PATH = 'storage/code_files'
-CODE_STORAGE_PYTHON_PATH = os.path.join(CODE_STORAGE_PATH, 'python')
-CODE_STORAGE_CPP_PATH = os.path.join(CODE_STORAGE_PATH, 'cpp')
-STORAGE_COMPILED_FILES = 'storage/compiled_files'
-CURRENT_CODE_FILE_NUMBER_PATH = os.path.join(CODE_STORAGE_PATH, 'current_code_file_number')
+from telegram import Update, ReplyKeyboardRemove
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters, ConversationHandler, \
+    CallbackContext
+from functions import identify_and_run
+from chatgpt import get_refactored_code_from_chatgpt, get_optimized_code_from_chatgpt, get_fixed_code_from_chatgpt
+from load_credentials import load_secret
 
 
-def get_current_code_file_number() -> int:
-    log(logger.debug, sys._getframe().f_code.co_name)
-    try:
-        with open(CURRENT_CODE_FILE_NUMBER_PATH, 'r') as file:
-            filename = file.read()
-        return int(filename)
-    except FileNotFoundError:
-        with open(CURRENT_CODE_FILE_NUMBER_PATH, 'w') as file:
-            file.write(str(1))
-        return 1
+TELEGRAM_TOKEN = load_secret('TELEGRAM_API_KEY')
+STATE_KEY = "state"
+GET_CODE = 1
+STATUSES = []
+CODE_SNIPETS = []
+ERRORS = []
 
 
-def update_current_code_file_number(number: int):
-    log(logger.debug, sys._getframe().f_code.co_name)
-    log(logger.info, 'Updating current code file number', f'{number=}')
-    with open(CURRENT_CODE_FILE_NUMBER_PATH, 'w') as file:
-        file.write(str(number))
+async def compile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('Paste code that you want to compile!')
+    context.user_data[STATE_KEY] = GET_CODE
 
 
-def save_code_to_file(path: os.path, code: str):
-    log(logger.debug, sys._getframe().f_code.co_name)
-    log(logger.info, 'Saving code to file', f'{path=}')
-    with open(path, 'w') as file:
-        file.write(code)
+async def code_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    state = context.user_data.get(STATE_KEY)
+    if state == GET_CODE:
+        user_text = update.message.text
 
+        CODE_SNIPETS.append(user_text)
+        print(user_text)
 
-def compile_and_run_cpp(code: str) -> tuple[str, str, int]:
-    log(logger.debug, sys._getframe().f_code.co_name)
+        context.user_data[STATE_KEY] = None
 
-    current_code_file_number = get_current_code_file_number()
-    code_file_path = os.path.join(CODE_STORAGE_CPP_PATH, f'{current_code_file_number}.cpp')
-    save_code_to_file(code_file_path, code)
-    update_current_code_file_number(current_code_file_number+1)
+        compiler_output, compiler_error, compiler_status = identify_and_run(user_text)
+        STATUSES.append(compiler_status)
+        if compiler_status == 0:
+            result = "SUCCESS"
+            output = compiler_output
+        else:
+            result = "ERROR"
+            output = compiler_error
+            ERRORS.append(compiler_error)
 
-    compiled_code_file = os.path.join(STORAGE_COMPILED_FILES, f'{current_code_file_number}.o')
-    log(logger.info, 'Running cpp file', f'{code_file_path=}')
-    compile_process = subprocess.Popen(['g++', code_file_path, '-o', compiled_code_file], stderr=subprocess.PIPE)
-    _, compile_err = compile_process.communicate()
+        await update.message.reply_text(f"Result:\n{result}")
+        await update.message.reply_text("Output:\n")
+        await update.message.reply_markdown(f"``` {output} ```")
 
-    if compile_process.returncode != 0:
-        return None, compile_err.decode('utf-8'), compile_process.returncode
-    run_process = subprocess.Popen([compiled_code_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    run_output, run_err = run_process.communicate()
-
-    os.remove(compiled_code_file)
-
-    return run_output.decode('utf-8'), run_err.decode('utf-8'), run_process.returncode
-
-
-def run_python_code(code: str) -> tuple[str, str, int]:
-    log(logger.debug, sys._getframe().f_code.co_name)
-    current_code_file_number = get_current_code_file_number()
-    code_file_path = os.path.join(CODE_STORAGE_PYTHON_PATH, f'{current_code_file_number}.py')
-    save_code_to_file(code_file_path, code)
-    update_current_code_file_number(current_code_file_number+1)
-
-    try:
-        log(logger.info, 'Running python file', f'{code_file_path=}')
-        process = subprocess.Popen(['python3', code_file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output, error = process.communicate()
-        return output.decode('utf-8'), error.decode('utf-8'), process.returncode
-    except Exception as e:
-        return None, str(e), 1
-
-
-if __name__ == '__main__':
-
-    code_sample = '''
-#include <iostream>
-using namespace std;
-int main() {
-    cout << "Hello, World!" << endl;
-    return 0;
-}
-    '''
-
-#     code_sample = '''
-# print('Hello, World!')
-#     '''
-
-#     code_sample = '''
-# public class HelloWorld {
-#     public static void main(String[] args) {
-#         System.out.println("Hello, World!");
-#     }
-# }
-# '''
-
-    identified_language = get_language_of_code_from_chatgpt(code_sample)
-    if identified_language == 'python':
-        output, error, status = run_python_code(code_sample)
-    elif identified_language == 'cpp':
-        output, error, status = compile_and_run_cpp(code_sample)
+    if STATUSES[-1] == 0:
+        await update.message.reply_text("Your code compiled successfully,"
+                                        " you can /refactor or /optimize")
     else:
-        output, error, status = None, f'language not supported: {identified_language}', None
+        await update.message.reply_text("Something went wrong. You can /fix")
 
-    print('Output:', output)
-    print('Error:', error)
-    print('Status:', status)
+    await update.message.reply_text("To clear session data click /clear")
+
+
+async def refactor_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """CHAT GPT REFACTOR AND COMPILE CODE_SNIPETS[-1]"""
+    code_to_refactor = CODE_SNIPETS[-1]
+    refactored_code = get_refactored_code_from_chatgpt(code_to_refactor)
+
+    compiler_output, compiler_error, compiler_status = identify_and_run(refactored_code)
+    STATUSES.append(compiler_status)
+    if compiler_status == 0:
+        result = "SUCCESS"
+        output = compiler_output
+    else:
+        result = "ERROR"
+        output = compiler_error
+        ERRORS.append(compiler_error)
+
+    STATUSES.append(compiler_status)
+    CODE_SNIPETS.append(refactored_code)
+
+    await update.message.reply_text("AFTER REFACTOR")
+    await update.message.reply_text("Code:\n")
+    await update.message.reply_markdown(f"``` {refactored_code} ```")
+    await update.message.reply_text(f"Result:\n{result}")
+    await update.message.reply_text("Output:\n")
+    await update.message.reply_markdown(f"``` {output} ```")
+
+    if STATUSES[-1] == 0:
+        await update.message.reply_text("Your code compiled successfully,"
+                                        " you can /refactor or /optimize")
+    else:
+        await update.message.reply_text("Something went wrong. You can /fix")
+
+    await update.message.reply_text("To clear session data click /clear")
+
+
+async def optimize_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """CHAT GPT OPTIMIZE AND COMPILE CODE_SNIPETS[-1]"""
+    code_to_optimize = CODE_SNIPETS[-1]
+    optimized_code = get_optimized_code_from_chatgpt(code_to_optimize)
+
+    compiler_output, compiler_error, compiler_status = identify_and_run(optimized_code)
+    STATUSES.append(compiler_status)
+    if compiler_status == 0:
+        result = "SUCCESS"
+        output = compiler_output
+    else:
+        result = "ERROR"
+        output = compiler_error
+        ERRORS.append(compiler_error)
+
+    STATUSES.append(compiler_status)
+    CODE_SNIPETS.append(optimized_code)
+
+    await update.message.reply_text("AFTER OPTIMIZATION")
+    await update.message.reply_text("Code:\n")
+    await update.message.reply_markdown(f"``` {optimized_code} ```")
+    await update.message.reply_text(f"Result:\n{result}")
+    await update.message.reply_text("Output:\n")
+    await update.message.reply_markdown(f"``` {output} ```")
+
+    if STATUSES[-1] == 0:
+        await update.message.reply_text("Your code compiled successfully,"
+                                        " you can /refactor or /optimize")
+    else:
+        await update.message.reply_text("Something went wrong. You can /fix")
+
+    await update.message.reply_text("To clear session data click /clear")
+
+
+async def fix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if STATUSES[-1] == 1:
+        """CHAT GPT FIX AND COMPILECODE_SNIPETS[-1]"""
+        code_to_fix = CODE_SNIPETS[-1]
+        error_to_fix = ERRORS[-1]
+
+        fixed_code = get_fixed_code_from_chatgpt(code_to_fix, error_to_fix)
+        compiler_output, compiler_error, compiler_status = identify_and_run(fixed_code)
+        STATUSES.append(compiler_status)
+        if compiler_status == 0:
+            result = "SUCCESS"
+            output = compiler_output
+        else:
+            result = "ERROR"
+            output = compiler_error
+            ERRORS.append(compiler_error)
+
+        STATUSES.append(compiler_status)
+        CODE_SNIPETS.append(fixed_code)
+
+        await update.message.reply_text("AFTER FIX")
+        await update.message.reply_text("Code:\n")
+        await update.message.reply_markdown(f"``` {fixed_code} ```")
+        await update.message.reply_text(f"Result:\n{result}")
+        await update.message.reply_text("Output:\n")
+        await update.message.reply_markdown(f"``` {output} ```")
+
+
+        if STATUSES[-1] == 0:
+            await update.message.reply_text("Your code compiled successfully,"
+                                            " you can /refactor or /optimize")
+        else:
+            await update.message.reply_text("Something went wrong. You can /fix")
+
+        await update.message.reply_text("To clear session data click /clear")
+
+    else:
+        await update.message.reply_text("Everything is ok. Lets /compile new code"
+                                        " or /refactor or /optimize last code.")
+
+
+async def clear_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global GET_CODE, STATUSES, CODE_SNIPETS
+
+    GET_CODE = 1
+    STATUSES = []
+    CODE_SNIPETS = []
+    ERRORS = []
+
+    await update.message.reply_text("Data was successfully erased")
+    await update.message.reply_text("You can /compile new code!")
+
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Hello! I'm CodeCheetah, your agile ally in code optimization. "
+                                    "Ready to boost the performance and efficiency of your code? "
+                                    "Just send me a code snippet /compile, and I'll take care of the rest!")
+
+if __name__ == '__main__':
+    handlers = [
+        CommandHandler('start', start_command),
+        CommandHandler('compile', compile_command),
+        CommandHandler('refactor', refactor_command),
+        CommandHandler('optimize', optimize_command),
+        CommandHandler('fix', fix_command),
+        CommandHandler('clear', clear_command),
+        MessageHandler(filters=filters.TEXT, callback=code_input)
+    ]
+
+    app = Application.builder().token(TELEGRAM_TOKEN).build()
+
+    for handler in handlers:
+        app.add_handler(handler)
+
+    app.run_polling(poll_interval=1)
