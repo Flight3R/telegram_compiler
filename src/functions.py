@@ -93,25 +93,32 @@ def identify_and_run(code_sample: str) -> tuple[str, str, int]:
 
 if __name__ == '__main__':
 
-    code_sample = '''
-#include <iostream>
-using namespace std;
-int main(){
-    cout<<"Hello, World!"<< endl;
-    return 0;
-}
-    '''
-    # output, error, status = identify_and_run(code_sample)
-    # print('Output:', output)
-    # print('Error:', error)
-    # print('Status:', status)
-
-    print(get_refactored_code_from_chatgpt(code_sample))
-
-
 #     code_sample = '''
-# print('Hello, World!')
+# #include <iostream>
+# using namespace std;
+# int main(){
+#     cout<<"Hello, World!"<< endl;
+#     return 0;
+# }
 #     '''
+
+#     print(get_refactored_code_from_chatgpt(code_sample))
+
+
+    code_sample = '''
+def fib(self, n: int) -> int:
+        a,b,s = 0, 1, 0
+        if n>1:
+            for i in range(1,n):
+                s = a+b
+                a = b
+                b = s
+            return s
+        elif n == 1:
+            return 1
+        else:
+            return 0
+    '''
 
 #     code_sample = '''
 # public class HelloWorld {
@@ -120,3 +127,8 @@ int main(){
 #     }
 # }
 # '''
+
+    output, error, status = identify_and_run(code_sample)
+    print(f'{output=}')
+    print(f'{error=}')
+    print(f'{status=}')
