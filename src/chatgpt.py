@@ -45,7 +45,7 @@ def get_refactored_code_from_chatgpt(code_sample: str) -> str:
 
     message = f'Hello chat, refacor this code and make it better looking. \
       Check also for proper variable names and best coding practices. \
-      Reply only with corrected code and send it as a code snippet, do not attach language name. \
+      Reply only with corrected code and send it as a code snippet. \
       Do not attach anything else. \
       Code to refactor: {code_sample}'
 
@@ -57,7 +57,7 @@ def get_refactored_code_from_chatgpt(code_sample: str) -> str:
     )
 
     openai_response = completion.choices[0].message.content
-    code_response = openai_response.removeprefix('```').removesuffix('```')
+    code_response = '\n'.join(openai_response.removeprefix('```').removesuffix('```').splitlines()[1:])
     log(logger.debug, 'Openai response', code_response)
     return code_response
 
@@ -71,7 +71,7 @@ def get_optimized_code_from_chatgpt(code_sample: str) -> str:
 
     message = f'Hello chat, optimize this code and make it more efficient. \
       Look for ways to improve performance of this code. \
-      Reply only with corrected code and send it as a code snippet, do not attach language name. \
+      Reply only with corrected code and send it as a code snippet. \
       Do not attach anything else. \
       Code to optimize: {code_sample}'
 
@@ -82,7 +82,7 @@ def get_optimized_code_from_chatgpt(code_sample: str) -> str:
       ]
     )
     openai_response = completion.choices[0].message.content
-    code_response = openai_response.removeprefix('```').removesuffix('```')
+    code_response = '\n'.join(openai_response.removeprefix('```').removesuffix('```').splitlines()[1:])
     log(logger.debug, 'Openai response', code_response)
     return code_response
 
@@ -96,7 +96,7 @@ def get_fixed_code_from_chatgpt(code_sample: str, error: str) -> str:
 
     message = f'Hello chat, there is an error in this code: {error}. \
       Please send me code with corrected error. \
-      Reply only with corrected code and send it as a code snippet, do not attach language name. \
+      Reply only with corrected code and send it as a code snippet. \
       Do not attach anything else. \
       Code to fix: {code_sample}'
 
@@ -108,7 +108,7 @@ def get_fixed_code_from_chatgpt(code_sample: str, error: str) -> str:
     )
 
     openai_response = completion.choices[0].message.content
-    code_response = openai_response.removeprefix('```').removesuffix('```')
+    code_response = '\n'.join(openai_response.removeprefix('```').removesuffix('```').splitlines()[1:])
     log(logger.debug, 'Openai response', code_response)
     return code_response
 
@@ -116,7 +116,6 @@ def get_fixed_code_from_chatgpt(code_sample: str, error: str) -> str:
 if __name__ == '__main__':
   pass
   code_sample = '''
-
 def fibonacci(self, n: int) -> int:
     first_num, second_num, result = 0, 1, 0
     if n > 1:
