@@ -2,8 +2,12 @@ from openai import OpenAI
 import re
 import sys
 from load_credentials import load_secret
+import logging
 from logger import logger, log
 
+
+if __name__ == '__main__':
+    logger.setLevel(logging.DEBUG)
 
 API_KEY = load_secret('OPENAI_API_KEY')
 
@@ -53,10 +57,9 @@ def get_refactored_code_from_chatgpt(code_sample: str) -> str:
     )
 
     openai_response = completion.choices[0].message.content
-    matches = re.findall(r'```(.*?)```', openai_response, re.DOTALL)
-    text_within_backticks = ''.join(matches)
-    log(logger.debug, 'Refactored code openai response', openai_response)
-    return text_within_backticks
+    code_response = openai_response.removeprefix('```').removesuffix('```')
+    log(logger.debug, 'Openai response', code_response)
+    return code_response
 
 
 def get_optimized_code_from_chatgpt(code_sample: str) -> str:
@@ -79,10 +82,9 @@ def get_optimized_code_from_chatgpt(code_sample: str) -> str:
       ]
     )
     openai_response = completion.choices[0].message.content
-    matches = re.findall(r'```(.*?)```', openai_response, re.DOTALL)
-    text_within_backticks = ''.join(matches)
-    log(logger.debug, 'Optimized code openai response', openai_response)
-    return text_within_backticks
+    code_response = openai_response.removeprefix('```').removesuffix('```')
+    log(logger.debug, 'Openai response', code_response)
+    return code_response
 
 
 def get_fixed_code_from_chatgpt(code_sample: str, error: str) -> str:
@@ -106,26 +108,26 @@ def get_fixed_code_from_chatgpt(code_sample: str, error: str) -> str:
     )
 
     openai_response = completion.choices[0].message.content
-    matches = re.findall(r'```(.*?)```', openai_response, re.DOTALL)
-    text_within_backticks = ''.join(matches)
-    log(logger.debug, 'Fixed code openai response', openai_response)
-    return text_within_backticks
+    code_response = openai_response.removeprefix('```').removesuffix('```')
+    log(logger.debug, 'Openai response', code_response)
+    return code_response
 
 
 if __name__ == '__main__':
   pass
   code_sample = '''
-def fib(self, n: int) -> int:
-      a,b,s = 0, 1, 0
-      if n>1:
-          for i in range(1,n):
-              s = a+b
-              a = b
-              b = s
-          return s
-      elif n == 1:
-          return 1
-      else:
-          return 0
+
+def fibonacci(self, n: int) -> int:
+    first_num, second_num, result = 0, 1, 0
+    if n > 1:
+        for i in range(1, n):
+            result = first_num + second_num
+            first_num = second_num
+            second_num = result
+        return result
+    elif n == 1:
+        return 1
+    else:
+        return 0
   '''
-  print(get_refactored_code_from_chatgpt(code_sample))
+  print(get_optimized_code_from_chatgpt(code_sample))

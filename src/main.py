@@ -180,6 +180,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     "Just send me a code snippet /compile, and I'll take care of the rest!")
 
 if __name__ == '__main__':
+    logger.setLevel(logging.INFO)
     handlers = [
         CommandHandler('start', start_command),
         CommandHandler('compile', compile_command),

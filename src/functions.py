@@ -92,7 +92,6 @@ def identify_and_run(code_sample: str) -> tuple[str, str, int]:
 
 
 if __name__ == '__main__':
-
 #     code_sample = '''
 # #include <iostream>
 # using namespace std;
