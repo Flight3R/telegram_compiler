@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: telegram-compiler-container
-          image: 192.168.0.2:5000/telegram_compiler_image:1.0.6
+          image: 192.168.0.2:5000/telegram_compiler_image:1.0.7
           env:
             - name: OPENAI_API_KEY
               valueFrom:
