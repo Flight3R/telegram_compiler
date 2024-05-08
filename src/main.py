@@ -1,4 +1,5 @@
 import logging
+from logger import logger, log
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters, ConversationHandler, \
     CallbackContext
