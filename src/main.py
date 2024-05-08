@@ -34,7 +34,7 @@ async def code_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         STATUSES.append(compiler_status)
         if compiler_status == 0:
             result = "SUCCESS"
-            output = compiler_output
+            output = compiler_output if compiler_output != '' else ' '
         else:
             result = "ERROR"
             output = compiler_error
@@ -62,7 +62,7 @@ async def refactor_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     STATUSES.append(compiler_status)
     if compiler_status == 0:
         result = "SUCCESS"
-        output = compiler_output
+        output = compiler_output if compiler_output != '' else ' '
     else:
         result = "ERROR"
         output = compiler_error
@@ -96,7 +96,7 @@ async def optimize_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     STATUSES.append(compiler_status)
     if compiler_status == 0:
         result = "SUCCESS"
-        output = compiler_output
+        output = compiler_output if compiler_output != '' else ' '
     else:
         result = "ERROR"
         output = compiler_error
@@ -132,7 +132,7 @@ async def fix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         STATUSES.append(compiler_status)
         if compiler_status == 0:
             result = "SUCCESS"
-            output = compiler_output
+            output = compiler_output if compiler_output != '' else ' '
         else:
             result = "ERROR"
             output = compiler_error

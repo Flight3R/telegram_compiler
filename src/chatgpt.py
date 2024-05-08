@@ -55,7 +55,7 @@ def get_refactored_code_from_chatgpt(code_sample: str) -> str:
     openai_response = completion.choices[0].message.content
     matches = re.findall(r'```(.*?)```', openai_response, re.DOTALL)
     text_within_backticks = ''.join(matches)
-    log(logger.debug, 'Refactored code', text_within_backticks)
+    log(logger.debug, 'Refactored code openai response', openai_response)
     return text_within_backticks
 
 
@@ -81,7 +81,7 @@ def get_optimized_code_from_chatgpt(code_sample: str) -> str:
     openai_response = completion.choices[0].message.content
     matches = re.findall(r'```(.*?)```', openai_response, re.DOTALL)
     text_within_backticks = ''.join(matches)
-    log(logger.debug, 'Optimized code', text_within_backticks)
+    log(logger.debug, 'Optimized code openai response', openai_response)
     return text_within_backticks
 
 
@@ -108,7 +108,7 @@ def get_fixed_code_from_chatgpt(code_sample: str, error: str) -> str:
     openai_response = completion.choices[0].message.content
     matches = re.findall(r'```(.*?)```', openai_response, re.DOTALL)
     text_within_backticks = ''.join(matches)
-    log(logger.debug, 'Fixed code', text_within_backticks)
+    log(logger.debug, 'Fixed code openai response', openai_response)
     return text_within_backticks
 
 
